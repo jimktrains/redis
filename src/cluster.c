@@ -25,7 +25,7 @@ int clusterLoadConfig(char *filename) {
     FILE *fp = fopen(filename,"r");
     char *line;
     int maxline, j;
-   
+
     if (fp == NULL) return REDIS_ERR;
 
     /* Parse the file. Note that single liens of the cluster config file can

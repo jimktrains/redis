@@ -25,7 +25,7 @@ void resetServerSaveParams() {
 
 void loadServerConfigFromString(char *config) {
     char *err = NULL;
-    int linenum = 0, totlines, i;
+    int linenum = 0, totlines, i, has_set_databases = 0;
     sds *lines;
 
     lines = sdssplitlen(config,strlen(config),"\n",1,&totlines);
@@ -147,6 +147,11 @@ void loadServerConfigFromString(char *config) {
                 goto loaderr;
             }
         } else if (!strcasecmp(argv[0],"databases") && argc == 2) {
+            if (server.requireupasslen) {
+               err = "Cannot set the number of databases after setting users";
+               goto loaderr;
+            }
+            has_set_databases = 1;
             server.dbnum = atoi(argv[1]);
             if (server.dbnum < 1) {
                 err = "Invalid number of databases"; goto loaderr;
@@ -269,6 +274,21 @@ void loadServerConfigFromString(char *config) {
                 goto loaderr;
             }
             server.requirepass = zstrdup(argv[1]);
+        } else if (!strcasecmp(argv[0],"requireupass") && argc == 2) {
+            if ( has_set_databases ) {
+                err = "Cannot set users after setting the number of databases";
+                goto loaderr;
+            }
+            if (strlen(argv[1]) > REDIS_AUTHPASS_MAX_LEN) {
+                err = "Password is longer than REDIS_AUTHPASS_MAX_LEN";
+                goto loaderr;
+            }
+
+            server.requireupasslen++;
+            server.dbnum = server.requireupasslen;
+
+            server.requireupass = zrealloc(server.requireupass, server.requireupasslen * sizeof(char*));
+            server.requireupass[server.requireupasslen - 1] = zstrdup(argv[1]);
         } else if (!strcasecmp(argv[0],"pidfile") && argc == 2) {
             zfree(server.pidfile);
             server.pidfile = zstrdup(argv[1]);

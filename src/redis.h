@@ -367,6 +367,7 @@ typedef struct redisClient {
     int flags;              /* REDIS_SLAVE | REDIS_MONITOR | REDIS_MULTI ... */
     int slaveseldb;         /* slave selected db, if this client is a slave */
     int authenticated;      /* when requirepass is non-NULL */
+    int uauthenticated;     /* when requireupass is non-NULL and matches a user*/
     int replstate;          /* replication state if this is a slave */
     int repldbfd;           /* replication DB file descriptor */
     long repldboff;         /* replication DB file offset */
@@ -599,6 +600,8 @@ struct redisServer {
     int shutdown_asap;          /* SHUTDOWN needed ASAP */
     int activerehashing;        /* Incremental rehash in serverCron() */
     char *requirepass;          /* Pass for AUTH command, or NULL */
+    char **requireupass;        /* Passes for UAUTH command, or NULL */
+    int  requireupasslen;       /* Passes for UAUTH command, or NULL */
     char *pidfile;              /* PID file path */
     int arch_bits;              /* 32 or 64 depending on sizeof(long) */
     int cronloops;              /* Number of times the cron function run */
@@ -1160,6 +1163,7 @@ char *redisGitDirty(void);
 
 /* Commands prototypes */
 void authCommand(redisClient *c);
+void uauthCommand(redisClient *c);
 void pingCommand(redisClient *c);
 void echoCommand(redisClient *c);
 void setCommand(redisClient *c);

@@ -208,6 +208,7 @@ struct redisCommand redisCommandTable[] = {
     {"keys",keysCommand,2,"rS",0,NULL,0,0,0,0,0},
     {"dbsize",dbsizeCommand,1,"r",0,NULL,0,0,0,0,0},
     {"auth",authCommand,2,"rs",0,NULL,0,0,0,0,0},
+    {"uauth",uauthCommand,2,"rs",0,NULL,0,0,0,0,0},
     {"ping",pingCommand,1,"r",0,NULL,0,0,0,0,0},
     {"echo",echoCommand,2,"r",0,NULL,0,0,0,0,0},
     {"save",saveCommand,1,"ars",0,NULL,0,0,0,0,0},
@@ -1581,7 +1582,8 @@ int processCommand(redisClient *c) {
     }
 
     /* Check if the user is authenticated */
-    if (server.requirepass && !c->authenticated && c->cmd->proc != authCommand)
+    if ( (server.requirepass && !c->authenticated && c->cmd->proc != authCommand) ||
+         (server.requireupass && !c->uauthenticated && c->cmd->proc != uauthCommand) )
     {
         addReplyError(c,"operation not permitted");
         return REDIS_OK;
@@ -1798,6 +1800,27 @@ int time_independent_strcmp(char *a, char *b) {
     /* Length must be equal as well. */
     diff |= alen ^ blen;
     return diff; /* If zero strings are the same. */
+}
+
+void uauthCommand(redisClient *c) {
+    if (!server.requireupass) {
+        addReplyError(c,"Client sent UAUTH, but no password is set");
+        return;
+    }
+
+    c->uauthenticated = 0;
+    for(int i = 0; i < server.requireupasslen; i++) {
+      if(!time_independent_strcmp(c->argv[1]->ptr, server.requireupass[i])) {
+         c->uauthenticated = i + 1;
+         selectDb(c,i);
+         addReply(c,shared.ok);
+         break;
+      }
+    }
+
+    if ( ! c->uauthenticated ) {
+      addReplyError(c,"invalid password");
+    }
 }
 
 void authCommand(redisClient *c) {

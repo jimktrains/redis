@@ -269,6 +269,14 @@ void loadServerConfigFromString(char *config) {
                 goto loaderr;
             }
             server.requirepass = zstrdup(argv[1]);
+        } else if (!strcasecmp(argv[0],"requireupass") && argc == 2) {
+            if (strlen(argv[1]) > REDIS_AUTHPASS_MAX_LEN) {
+                err = "Password is longer than REDIS_AUTHPASS_MAX_LEN";
+                goto loaderr;
+            }
+            server.requireupasslen++;
+            server.requireupass = zrealloc(server.requireupass, server.requireupasslen * sizeof(char*));
+            server.requireupass[server.requireupasslen - 1] = zstrdup(argv[1]);
         } else if (!strcasecmp(argv[0],"pidfile") && argc == 2) {
             zfree(server.pidfile);
             server.pidfile = zstrdup(argv[1]);

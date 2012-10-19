@@ -288,7 +288,22 @@ void loadServerConfigFromString(char *config) {
             server.dbnum = server.requireupasslen;
 
             server.requireupass = zrealloc(server.requireupass, server.requireupasslen * sizeof(char*));
-            server.requireupass[server.requireupasslen - 1] = zstrdup(argv[1]);
+            int j;
+            for(j = server.requireupasslen - 2; -1 < j; j--) {
+                int delta = strcmp(server.requireupass[j], argv[1]);
+                if ( delta == 0) {
+                   err = "Password has already been set";
+                   goto loaderr;
+                }
+                else if ( delta < 0 ) {
+                  break;
+                }
+                else {
+                  server.requireupass[j + 1] = server.requireupass[j];
+                }
+            }
+            server.requireupass[j + 1] = zstrdup(argv[1]);
+
         } else if (!strcasecmp(argv[0],"pidfile") && argc == 2) {
             zfree(server.pidfile);
             server.pidfile = zstrdup(argv[1]);
@@ -392,6 +407,7 @@ void loadServerConfigFromString(char *config) {
         }
         sdsfreesplitres(argv,argc);
     }
+
     sdsfreesplitres(lines,totlines);
     return;
 

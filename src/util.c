@@ -376,6 +376,27 @@ void getRandomHexChars(char *p, unsigned int len) {
     fclose(fp);
 }
 
+int string_bsearch(char **array, int len, char *target) {
+    if (len == 0) return -2;
+    int i = 0, low = 0, high = len -1, delta;
+
+    i = (high - low) / 2;
+
+    while (low <= high) {
+        delta = strcmp(array[i], target);
+        if (delta == 0) {
+            return i;
+        }
+        else if (0 < delta) {
+            high = i;
+        }
+        else {
+            low = i + 1;
+        }
+        i = low + ((high - low) / 2);
+    }
+    return -1;
+}
 #ifdef UTIL_TEST_MAIN
 #include <assert.h>
 

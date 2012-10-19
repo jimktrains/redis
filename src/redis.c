@@ -1808,19 +1808,18 @@ void uauthCommand(redisClient *c) {
         return;
     }
 
+    int user = string_bsearch(server.requireupass, server.requireupasslen, c->argv[1]->ptr);
+
     c->uauthenticated = 0;
-    for(int i = 0; i < server.requireupasslen; i++) {
-      if(!time_independent_strcmp(c->argv[1]->ptr, server.requireupass[i])) {
-         c->uauthenticated = i + 1;
-         selectDb(c,i);
+
+    if (-1 < user) {
+         c->uauthenticated = user + 1;
+         selectDb(c,user);
          addReply(c,shared.ok);
-         break;
-      }
+         return;
     }
 
-    if ( ! c->uauthenticated ) {
-      addReplyError(c,"invalid password");
-    }
+    addReplyError(c,"invalid password");
 }
 
 void authCommand(redisClient *c) {

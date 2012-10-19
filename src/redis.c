@@ -1589,6 +1589,11 @@ int processCommand(redisClient *c) {
         return REDIS_OK;
     }
 
+    if ( c->uauthenticated && c->cmd->flags & REDIS_CMD_ADMIN ) {
+        addReplyError(c,"operation not permitted");
+        return REDIS_OK;
+    }
+
     /* If cluster is enabled, redirect here */
     if (server.cluster_enabled &&
                 !(c->cmd->getkeys_proc == NULL && c->cmd->firstkey == 0)) {

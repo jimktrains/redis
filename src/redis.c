@@ -1590,7 +1590,11 @@ int processCommand(redisClient *c) {
     }
 
     /* Perhaps FlushAll could be marked as an admin command? */
-    if (c->uauthenticated && c->cmd->proc == flushallCommand) {
+    if ( c->uauthenticated && (
+          c->cmd->proc == flushallCommand ||
+          c->cmd->proc == infoCommand ||
+          c->cmd->proc == slowlogCommand
+       )){
         addReplyError(c,"May not run admin commands as a multiuser");
         return REDIS_OK;
     }

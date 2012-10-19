@@ -273,10 +273,21 @@ void loadServerConfigFromString(char *config) {
                 err = "Password is longer than REDIS_AUTHPASS_MAX_LEN";
                 goto loaderr;
             }
+            if (server.requireupasslen) {
+                int user = string_bsearch(server.requireupass, server.requireupasslen, argv[1]);
+                if ( -1 < user ) {
+                    err = "Cannot set a requireupass to be the same as requirepass";
+                    goto loaderr;
+                }
+            }
             server.requirepass = zstrdup(argv[1]);
         } else if (!strcasecmp(argv[0],"requireupass") && argc == 2) {
             if ( has_set_databases ) {
                 err = "Cannot set users after setting the number of databases";
+                goto loaderr;
+            }
+            if (server.requirepass && ! strcmp(server.requirepass, argv[1])) {
+                err = "Cannot set a requireupass to be the same as requirepass";
                 goto loaderr;
             }
             if (strlen(argv[1]) > REDIS_AUTHPASS_MAX_LEN) {

@@ -1582,15 +1582,20 @@ int processCommand(redisClient *c) {
     }
 
     /* Check if the user is authenticated */
-    if ( (server.requirepass && !c->authenticated && c->cmd->proc != authCommand) ||
+    if ( (server.requirepass && !c->authenticated && c->cmd->proc != authCommand) &&
          (server.requireupass && !c->uauthenticated && c->cmd->proc != uauthCommand) )
     {
-        addReplyError(c,"operation not permitted");
+        addReplyError(c,"Must be authenticated to run a command");
         return REDIS_OK;
     }
 
+    /* Perhaps FlushAll could be marked as an admin command? */
+    if (c->uauthenticated && c->cmd->proc == flushallCommand) {
+        addReplyError(c,"May not run admin commands as a multiuser");
+        return REDIS_OK;
+    }
     if ( c->uauthenticated && c->cmd->flags & REDIS_CMD_ADMIN ) {
-        addReplyError(c,"operation not permitted");
+        addReplyError(c,"May not run admin commands as a multi-user");
         return REDIS_OK;
     }
 
@@ -1816,6 +1821,7 @@ void uauthCommand(redisClient *c) {
     int user = string_bsearch(server.requireupass, server.requireupasslen, c->argv[1]->ptr);
 
     c->uauthenticated = 0;
+    c->authenticated  = 0;
 
     if (-1 < user) {
          c->uauthenticated = user + 1;
@@ -1828,6 +1834,9 @@ void uauthCommand(redisClient *c) {
 }
 
 void authCommand(redisClient *c) {
+    c->uauthenticated = 0;
+    c->authenticated  = 0;
+
     if (!server.requirepass) {
         addReplyError(c,"Client sent AUTH, but no password is set");
     } else if (!time_independent_strcmp(c->argv[1]->ptr, server.requirepass)) {
